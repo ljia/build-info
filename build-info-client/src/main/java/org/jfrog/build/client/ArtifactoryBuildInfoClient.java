@@ -319,7 +319,7 @@ public class ArtifactoryBuildInfoClient {
         searhArtifactPathBuilder.append(details.getFile().getName());
 
         String searchPath = searhArtifactPathBuilder.toString();
-        log.info("Check for duplicate artifact: " + details.artifactPath);
+        log.info("Check for duplicate artifact: " + details.getFile().getName());
         searchPath = httpClient.encodeUrl(searchPath);
 
 
