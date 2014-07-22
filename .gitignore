@@ -13,3 +13,6 @@
 build-info.ipr
 build-info.iws
 atlassian-*.xml
+.project
+.settings
+.classpath

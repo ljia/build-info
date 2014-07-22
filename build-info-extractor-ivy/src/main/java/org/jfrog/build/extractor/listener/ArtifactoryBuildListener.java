@@ -28,8 +28,10 @@ import org.jfrog.build.util.IvyBuildInfoLog;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -333,6 +335,32 @@ public class ArtifactoryBuildListener implements BuildListener {
 
     private void deployArtifacts(Project project, ArtifactoryBuildInfoClient client, Set<DeployDetails> deployDetails,
             IncludeExcludePatterns patterns) throws IOException {
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
+        boolean foundDuplicate = false;
+        
+        for (DeployDetails deployDetail : deployDetails) {
+        	String artifactPath = deployDetail.getArtifactPath();
+            if (PatternMatcher.pathConflicts(artifactPath, patterns)) {
+                project.log("[buildinfo:deploy] Skipping the duplicate check of '" + artifactPath +
+                        "' due to the defined include-exclude patterns.", Project.MSG_INFO);
+                continue;
+            }
+            if (client.checkDuplicateArtifact(deployDetail)) {
+                duplicateArtifacts.add(deployDetail);
+                foundDuplicate = true;
+            }
+        }
+        
+        if (foundDuplicate) {
+            StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
+            }
+            msg.append("[buildinfo:deploy] Skipping deployment of artifacts (if any) and build info.");
+            throw new RuntimeException(msg.toString());
+        }
+        
         for (DeployDetails deployDetail : deployDetails) {
             String artifactPath = deployDetail.getArtifactPath();
             if (PatternMatcher.pathConflicts(artifactPath, patterns)) {

@@ -382,6 +382,35 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
 
     private void deployArtifacts(ArtifactoryBuildInfoClient client, Set<GradleDeployDetails> details,
                                  IncludeExcludePatterns patterns) throws IOException {
+        /*
+         * Before deploying artifacts, run a check to make sure there is no duplicate.
+         * If there are duplicates, skip the deployment process and error out.
+         */
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
+        boolean foundDuplicate = false;
+        for (GradleDeployDetails detail : details) {
+            DeployDetails deployDetails = detail.getDeployDetails();
+            String artifactPath = deployDetails.getArtifactPath();
+            if (PatternMatcher.pathConflicts(artifactPath, patterns)) {
+                log.log(LogLevel.LIFECYCLE, "Skipping the duplicate check of '" + artifactPath +
+                        "' due to the defined include-exclude patterns.");
+                continue;
+            }
+            if (client.checkDuplicateArtifact(deployDetails)) {
+            	duplicateArtifacts.add(deployDetails);
+                foundDuplicate = true;
+            }
+        }
+        if (foundDuplicate) {
+            StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
+            }
+            msg.append("Skipping deployment of artifacts (if any) and build info.");
+            throw new RuntimeException(msg.toString());
+        }
+        
         for (GradleDeployDetails detail : details) {
             DeployDetails deployDetails = detail.getDeployDetails();
             String artifactPath = deployDetails.getArtifactPath();
@@ -390,7 +419,13 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
                         "' due to the defined include-exclude patterns.");
                 continue;
             }
-            client.deployArtifact(deployDetails);
+            
+            try {
+            	client.deployArtifact(deployDetails);
+            } catch (IOException e) {
+                throw new RuntimeException("Error deploying artifact: " + deployDetails.getFile() +
+                        ".\n Skipping deployment of remaining artifacts (if any) and build info.", e);
+            }
         }
     }
 
