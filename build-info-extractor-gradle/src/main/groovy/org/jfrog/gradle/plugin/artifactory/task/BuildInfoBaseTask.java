@@ -386,7 +386,7 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
          * Before deploying artifacts, run a check to make sure there is no duplicate.
          * If there are duplicates, skip the deployment process and error out.
          */
-        List<String> duplicateArtifacts = new ArrayList<String>();
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
         boolean foundDuplicate = false;
         for (GradleDeployDetails detail : details) {
             DeployDetails deployDetails = detail.getDeployDetails();
@@ -397,14 +397,15 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
                 continue;
             }
             if (client.checkDuplicateArtifact(deployDetails)) {
-            	duplicateArtifacts.add(deployDetails.getFile().getName());
+            	duplicateArtifacts.add(deployDetails);
                 foundDuplicate = true;
             }
         }
         if (foundDuplicate) {
             StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
-            for (String duplicateArtifact : duplicateArtifacts) {
-            	msg.append(duplicateArtifact).append("\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
             }
             msg.append("Skipping deployment of artifacts (if any) and build info.");
             throw new RuntimeException(msg.toString());
