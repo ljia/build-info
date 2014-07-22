@@ -316,12 +316,6 @@ public class ArtifactoryBuildInfoClient {
         searhArtifactPathBuilder.append("/api/search/artifact?repos=")
                 .append(details.getTargetRepository()).append("&name=");
 
-//        if (details.artifactPath.startsWith("/")) {
-//            searhArtifactPathBuilder.append(details.artifactPath.substring(1));
-//        } else {
-//            searhArtifactPathBuilder.append(details.artifactPath);
-//        }
-        
         searhArtifactPathBuilder.append(details.getFile().getName());
 
         String searchPath = searhArtifactPathBuilder.toString();

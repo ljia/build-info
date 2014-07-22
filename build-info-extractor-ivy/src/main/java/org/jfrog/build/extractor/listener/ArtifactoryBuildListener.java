@@ -335,7 +335,7 @@ public class ArtifactoryBuildListener implements BuildListener {
 
     private void deployArtifacts(Project project, ArtifactoryBuildInfoClient client, Set<DeployDetails> deployDetails,
             IncludeExcludePatterns patterns) throws IOException {
-        List<String> duplicateArtifacts = new ArrayList<String>();
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
         boolean foundDuplicate = false;
         
         for (DeployDetails deployDetail : deployDetails) {
@@ -346,15 +346,16 @@ public class ArtifactoryBuildListener implements BuildListener {
                 continue;
             }
             if (client.checkDuplicateArtifact(deployDetail)) {
-                duplicateArtifacts.add(deployDetail.getFile().getName());
+                duplicateArtifacts.add(deployDetail);
                 foundDuplicate = true;
             }
         }
         
         if (foundDuplicate) {
             StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
-            for (String duplicateArtifact : duplicateArtifacts) {
-            	msg.append(duplicateArtifact).append("\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
             }
             msg.append("[buildinfo:deploy] Skipping deployment of artifacts (if any) and build info.");
             throw new RuntimeException(msg.toString());

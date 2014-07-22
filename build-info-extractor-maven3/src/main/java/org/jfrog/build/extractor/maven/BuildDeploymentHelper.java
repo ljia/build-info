@@ -124,7 +124,7 @@ public class BuildDeploymentHelper {
         
         IncludeExcludePatterns includeExcludePatterns = getArtifactDeploymentPatterns(publishConf);
         
-        List<String> duplicateArtifacts = new ArrayList<String>();
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
         boolean foundDuplicate = false;
         
         for (DeployDetails artifact : deployableArtifacts) {
@@ -136,7 +136,7 @@ public class BuildDeploymentHelper {
             }
             try {
 	            if (client.checkDuplicateArtifact(artifact)) {
-	                duplicateArtifacts.add(artifact.getFile().getName());
+	                duplicateArtifacts.add(artifact);
 	                foundDuplicate = true;
 	            }
             } catch (IOException e) {
@@ -149,8 +149,9 @@ public class BuildDeploymentHelper {
         if (foundDuplicate) {
             StringBuilder msg = new StringBuilder("Artifactory Build Info Recorder: " + ""
                     + "The following artifacts has duplicates in the target repo:\n");
-            for (String duplicateArtifact : duplicateArtifacts) {
-            	msg.append(duplicateArtifact).append("\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
             }
             msg.append("Artifactory Build Info Recorder: Skipping deployment of artifacts (if any) and build info.");
             throw new RuntimeException(msg.toString());
