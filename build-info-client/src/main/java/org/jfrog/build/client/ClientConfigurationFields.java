@@ -35,6 +35,7 @@ public interface ClientConfigurationFields {
     // Publish fields
     String PUBLISH_ARTIFACTS = "artifacts";
     String PUBLISH_BUILD_INFO = "buildInfo";
+    String CHECK_DUPLICATE_ARTIFACT = "duplicate";
     String SNAPSHOT_REPO_KEY = "snapshot.repoKey";
     String MATRIX = "matrix";
     String ARTIFACT_SPECS = "artifactSpecs";
