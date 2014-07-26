@@ -307,20 +307,17 @@ public class ArtifactoryBuildInfoClient {
     public boolean checkDuplicateArtifact(DeployDetails details)
             throws IOException {
 
-        // todo: now hard code the yum-dev-local check. do not check duplicate for other repos
-        if (!("yum-dev-local".equals(details.getTargetRepository()))) {
-            return false;
-        }
-
         StringBuilder searhArtifactPathBuilder = new StringBuilder(artifactoryUrl);
         searhArtifactPathBuilder.append("/api/search/artifact?repos=")
                 .append(details.getTargetRepository()).append("&name=");
 
-        searhArtifactPathBuilder.append(details.getFile().getName());
+        String artifactPath = details.getArtifactPath();
+        String artifactName = artifactPath.substring(artifactPath.lastIndexOf('/') + 1);
+        searhArtifactPathBuilder.append(artifactName);
 
         String searchPath = searhArtifactPathBuilder.toString();
         log.debug("Search URL: " + searchPath);
-        log.info("Check for duplicate artifact: " + details.getFile().getName());
+        log.info("Check for duplicate artifact: " + artifactName);
         searchPath = httpClient.encodeUrl(searchPath);
 
 

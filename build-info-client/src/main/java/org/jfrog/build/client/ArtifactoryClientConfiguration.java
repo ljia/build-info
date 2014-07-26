@@ -290,7 +290,7 @@ public class ArtifactoryClientConfiguration {
         }
         
         public void setCheckDuplicateArtifact(Boolean enabled) {
-            setBooleanValue(CHECK_DUPLICATE_ARTIFACT, true);
+            setBooleanValue(CHECK_DUPLICATE_ARTIFACT, enabled);
         }
         
         public Boolean isCheckDuplicateArtifact() {

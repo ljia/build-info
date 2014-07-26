@@ -47,6 +47,7 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
     public static final String BUILD_INFO_TASK_NAME = "artifactoryPublish";
     public static final String PUBLISH_ARTIFACTS = "publishArtifacts";
     public static final String PUBLISH_BUILD_INFO = "publishBuildInfo";
+    public static final String CHECK_DUPLICATE_ARTIFACT = "checkDuplicateArtifact";
     public static final String ARCHIVES_BASE_NAME = "archivesBaseName";
 
     @Input
@@ -82,6 +83,17 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
 
     public void setPublishArtifacts(Object publishArtifacts) {
         setFlag(PUBLISH_ARTIFACTS, toBoolean(publishArtifacts));
+    }
+
+    @Input
+    @Optional
+    @Nullable
+    public Boolean getCheckDuplicateArtifact() {
+        return getFlag(CHECK_DUPLICATE_ARTIFACT);
+    }
+
+    public void setCheckDuplicateArtifact(Object checkDuplicateArtifact) {
+        setFlag(CHECK_DUPLICATE_ARTIFACT, toBoolean(checkDuplicateArtifact));
     }
 
     protected Boolean toBoolean(Object publishIvy) {
