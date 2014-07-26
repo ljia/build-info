@@ -322,7 +322,7 @@ public class ArtifactoryBuildListener implements BuildListener {
                 IncludeExcludePatterns patterns = new IncludeExcludePatterns(
                         clientConf.publisher.getIncludePatterns(), clientConf.publisher.getExcludePatterns());
 
-                deployArtifacts(project, client, deployDetails, patterns);
+                deployArtifacts(project, client, deployDetails, patterns, clientConf.publisher.isCheckDuplicateArtifact());
             }
             if (clientConf.publisher.isPublishBuildInfo()) {
                 client.sendBuildInfo(build);
@@ -334,31 +334,36 @@ public class ArtifactoryBuildListener implements BuildListener {
     }
 
     private void deployArtifacts(Project project, ArtifactoryBuildInfoClient client, Set<DeployDetails> deployDetails,
-            IncludeExcludePatterns patterns) throws IOException {
-        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
-        boolean foundDuplicate = false;
-        
-        for (DeployDetails deployDetail : deployDetails) {
-        	String artifactPath = deployDetail.getArtifactPath();
-            if (PatternMatcher.pathConflicts(artifactPath, patterns)) {
-                project.log("[buildinfo:deploy] Skipping the duplicate check of '" + artifactPath +
-                        "' due to the defined include-exclude patterns.", Project.MSG_INFO);
-                continue;
+            IncludeExcludePatterns patterns, Boolean checkDuplicateArtifact) throws IOException {
+
+        if (checkDuplicateArtifact) {
+            List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
+            boolean foundDuplicate = false;
+
+            for (DeployDetails deployDetail : deployDetails) {
+                String artifactPath = deployDetail.getArtifactPath();
+                if (PatternMatcher.pathConflicts(artifactPath, patterns)) {
+                    project.log("[buildinfo:deploy] Skipping the duplicate check of '" + artifactPath +
+                            "' due to the defined include-exclude patterns.", Project.MSG_INFO);
+                    continue;
+                }
+                if (client.checkDuplicateArtifact(deployDetail)) {
+                    duplicateArtifacts.add(deployDetail);
+                    foundDuplicate = true;
+                }
             }
-            if (client.checkDuplicateArtifact(deployDetail)) {
-                duplicateArtifacts.add(deployDetail);
-                foundDuplicate = true;
+
+            if (foundDuplicate) {
+                StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
+                for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                    String artifactName = duplicateArtifact.getArtifactPath()
+                            .substring(duplicateArtifact.getArtifactPath().lastIndexOf('/') + 1);
+                    msg.append(artifactName).append(", repo: ")
+                        .append(duplicateArtifact.getTargetRepository()).append("\n");
+                }
+                msg.append("[buildinfo:deploy] Skipping deployment of artifacts (if any) and build info.");
+                throw new RuntimeException(msg.toString());
             }
-        }
-        
-        if (foundDuplicate) {
-            StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
-            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
-                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
-                    .append(duplicateArtifact.getTargetRepository()).append("\n");
-            }
-            msg.append("[buildinfo:deploy] Skipping deployment of artifacts (if any) and build info.");
-            throw new RuntimeException(msg.toString());
         }
         
         for (DeployDetails deployDetail : deployDetails) {

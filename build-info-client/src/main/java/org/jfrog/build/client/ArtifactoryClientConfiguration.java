@@ -289,6 +289,14 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(PUBLISH_BUILD_INFO, true);
         }
 
+
+        public void setCheckDuplicateArtifact(Boolean enabled) {
+            setBooleanValue(CHECK_DUPLICATE_ARTIFACT, enabled);
+        }
+
+        public Boolean isCheckDuplicateArtifact() {
+            return getBooleanValue(CHECK_DUPLICATE_ARTIFACT, false);
+        }
         public void setIncludePatterns(String patterns) {
             setStringValue(INCLUDE_PATTERNS, patterns);
         }
