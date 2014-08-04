@@ -18,6 +18,7 @@ package org.jfrog.build.extractor.maven;
 
 import com.google.common.collect.Sets;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
@@ -126,7 +127,18 @@ public class BuildDeploymentHelper {
         
         IncludeExcludePatterns includeExcludePatterns = getArtifactDeploymentPatterns(publishConf);
 
-        if (checkDuplicateArtifact) {
+        final String[] mustCheckRepos = new String[] {
+                "yum-dev-local",
+                "yum-qa-local",
+                "yum-ote-local",
+                "yum-prod-local",
+                "bsd-dev-local",
+                "bsd-qa-local",
+                "bsd-prod-local"
+        };
+        if ((deployableArtifacts.size() > 0 && 
+                ArrayUtils.contains(mustCheckRepos, deployableArtifacts.iterator().next().getTargetRepository())) || 
+                checkDuplicateArtifact) {
             List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
             boolean foundDuplicate = false;
 

@@ -1,5 +1,6 @@
 package org.jfrog.build.extractor.listener;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.ant.IvyAntSettings;
@@ -336,7 +337,18 @@ public class ArtifactoryBuildListener implements BuildListener {
     private void deployArtifacts(Project project, ArtifactoryBuildInfoClient client, Set<DeployDetails> deployDetails,
             IncludeExcludePatterns patterns, Boolean checkDuplicateArtifact) throws IOException {
 
-        if (checkDuplicateArtifact) {
+        final String[] mustCheckRepos = new String[] {
+                "yum-dev-local",
+                "yum-qa-local",
+                "yum-ote-local",
+                "yum-prod-local",
+                "bsd-dev-local",
+                "bsd-qa-local",
+                "bsd-prod-local"
+        };
+        if ((deployDetails.size() > 0 &&
+                ArrayUtils.contains(mustCheckRepos, deployDetails.iterator().next().getTargetRepository())) || 
+                checkDuplicateArtifact) {
             List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
             boolean foundDuplicate = false;
 

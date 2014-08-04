@@ -4,7 +4,10 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+
 import groovy.lang.Closure;
+
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
@@ -28,6 +31,7 @@ import org.jfrog.gradle.plugin.artifactory.extractor.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -404,8 +408,18 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
     private void deployArtifacts(ArtifactoryBuildInfoClient client, Set<GradleDeployDetails> details,
                                  IncludeExcludePatterns patterns, Boolean checkDuplicateArtifact) throws IOException {
 
-        log.log(LogLevel.LIFECYCLE, "aaaaaaaa: " + checkDuplicateArtifact);
-        if (checkDuplicateArtifact) {
+    	final String[] mustCheckRepos = new String[] {
+                "yum-dev-local",
+                "yum-qa-local",
+                "yum-ote-local",
+                "yum-prod-local",
+                "bsd-dev-local",
+                "bsd-qa-local",
+                "bsd-prod-local"
+        };
+        if ((details.size() > 0 && 
+                ArrayUtils.contains(mustCheckRepos, details.iterator().next().getDeployDetails().getTargetRepository())) ||
+                checkDuplicateArtifact) {
             /*
              * Before deploying artifacts, run a check to make sure there is no duplicate.
              * If there are duplicates, skip the deployment process and error out.
