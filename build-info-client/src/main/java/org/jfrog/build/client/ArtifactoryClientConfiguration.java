@@ -294,7 +294,7 @@ public class ArtifactoryClientConfiguration {
         }
         
         public Boolean isCheckDuplicateArtifact() {
-            return getBooleanValue(CHECK_DUPLICATE_ARTIFACT, false);
+            return getBooleanValue(CHECK_DUPLICATE_ARTIFACT, true);
         }
 
         public void setIncludePatterns(String patterns) {
