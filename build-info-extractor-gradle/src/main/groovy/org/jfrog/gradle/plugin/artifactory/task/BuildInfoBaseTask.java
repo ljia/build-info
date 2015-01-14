@@ -418,7 +418,7 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
          */
         List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
         boolean foundDuplicate = false;
-        for (GradleDeployDetails detail : details) {
+        for (GradleDeployDetails detail : allDeployDetails) {
             DeployDetails deployDetails = detail.getDeployDetails();
             String artifactPath = deployDetails.getArtifactPath();
             if (PatternMatcher.pathConflicts(artifactPath, patterns)) {
