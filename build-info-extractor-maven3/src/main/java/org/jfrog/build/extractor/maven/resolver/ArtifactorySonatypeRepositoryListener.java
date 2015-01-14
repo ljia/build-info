@@ -15,6 +15,7 @@ import org.jfrog.build.extractor.maven.BuildInfoRecorder;
 import org.sonatype.aether.AbstractRepositoryListener;
 import org.sonatype.aether.RepositoryEvent;
 import org.sonatype.aether.RepositoryListener;
+import org.sonatype.aether.RepositorySystemSession;
 import org.sonatype.aether.metadata.Metadata;
 import org.sonatype.aether.repository.RemoteRepository;
 import org.sonatype.aether.repository.RepositoryPolicy;
@@ -23,6 +24,7 @@ import org.sonatype.aether.resolution.ArtifactRequest;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Properties;
 
 /**
  * Repository listener when running in Maven 3.0.x.
@@ -123,6 +125,10 @@ public class ArtifactorySonatypeRepositoryListener extends AbstractRepositoryLis
      * @param event
      */
     private void verifyArtifactoryResolutionEnforced(RepositoryEvent event) {
+        initResolutionHelper(event.getSession());
+        if (!resolutionHelper.resolutionRepositoriesConfigured()) {
+            return;
+        }
         if (event.getArtifact() == null && event.getMetadata() == null) {
             return;
         }
@@ -167,20 +173,43 @@ public class ArtifactorySonatypeRepositoryListener extends AbstractRepositoryLis
         try {
             if (snapshot && !repo.getUrl().equals(artifactorySnapshotRepo.getUrl())) {
                 logger.debug("Replacing resolution repository URL: " + repo + " with: " + artifactorySnapshotRepo.getUrl());
-                Field url = RemoteRepository.class.getDeclaredField("url");
-                url.setAccessible(true);
-                url.set(repo, artifactorySnapshotRepo.getUrl());
+                copyRepositoryFields(artifactorySnapshotRepo, repo);
                 setRepositoryPolicy(repo);
             } else
             if (!snapshot && !repo.getUrl().equals(artifactoryReleaseRepo.getUrl())) {
                 logger.debug("Replacing resolution repository URL: " + repo + " with: " + artifactoryReleaseRepo.getUrl());
-                Field url = RemoteRepository.class.getDeclaredField("url");
-                url.setAccessible(true);
-                url.set(repo, artifactoryReleaseRepo.getUrl());
+                copyRepositoryFields(artifactoryReleaseRepo, repo);
                 setRepositoryPolicy(repo);
             }
         } catch (Exception e) {
             logger.error("Failed while replacing resolution repository URL", e);
+        }
+    }
+
+    private void initResolutionHelper(RepositorySystemSession session) {
+        if (resolutionHelper.isInitialized()) {
+            return;
+        }
+        Properties allMavenProps = new Properties();
+        allMavenProps.putAll(session.getSystemProperties());
+        allMavenProps.putAll(session.getUserProperties());
+        resolutionHelper.init(allMavenProps);
+    }
+
+    private void copyRepositoryFields(RemoteRepository fromRepo, RemoteRepository toRepo)
+            throws IllegalAccessException, NoSuchFieldException {
+        Field url = RemoteRepository.class.getDeclaredField("url");
+        url.setAccessible(true);
+        url.set(toRepo, fromRepo.getUrl());
+        if (fromRepo.getAuthentication() != null) {
+            Field authentication = RemoteRepository.class.getDeclaredField("authentication");
+            authentication.setAccessible(true);
+            authentication.set(toRepo, fromRepo.getAuthentication());
+        }
+        if (fromRepo.getProxy() != null) {
+            Field proxy = RemoteRepository.class.getDeclaredField("proxy");
+            proxy.setAccessible(true);
+            proxy.set(toRepo, fromRepo.getProxy());
         }
     }
 

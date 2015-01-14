@@ -18,7 +18,7 @@ package org.jfrog.build.client;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.io.Closeables;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jfrog.build.api.*;
 import org.jfrog.build.api.util.Log;
@@ -29,10 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import static org.jfrog.build.api.BuildInfoConfigProperties.*;
 import static org.jfrog.build.api.BuildInfoFields.*;
@@ -48,16 +45,15 @@ import static org.jfrog.build.client.ClientProperties.*;
  * @author freds
  */
 public class ArtifactoryClientConfiguration {
+    public final ResolverHandler resolver;
+    public final PublisherHandler publisher;
+    public final BuildInfoHandler info;
+    public final ProxyHandler proxy;
     private final PrefixPropertyHandler root;
     /**
      * To configure the props builder itself, so all method of this classes delegated from here
      */
     private final PrefixPropertyHandler rootConfig;
-
-    public final ResolverHandler resolver;
-    public final PublisherHandler publisher;
-    public final BuildInfoHandler info;
-    public final ProxyHandler proxy;
 
     public ArtifactoryClientConfiguration(Log log) {
         this.root = new PrefixPropertyHandler(log, new TreeMap<String, String>());
@@ -116,7 +112,7 @@ public class ArtifactoryClientConfiguration {
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
-            Closeables.closeQuietly(fos);
+            IOUtils.closeQuietly(fos);
         }
     }
 
@@ -140,10 +136,6 @@ public class ArtifactoryClientConfiguration {
         root.setStringValue(PROP_CONTEXT_URL, contextUrl);
     }*/
 
-    public void setTimeout(Integer timeout) {
-        root.setIntegerValue(PROP_TIMEOUT, timeout);
-    }
-
     public void setTimeoutSec(Integer timeout) {
         setTimeout(timeout);
     }
@@ -152,20 +144,24 @@ public class ArtifactoryClientConfiguration {
         return root.getIntegerValue(PROP_TIMEOUT);
     }
 
-    public void setPropertiesFile(String propertyFile) {
-        rootConfig.setStringValue(PROPERTIES_FILE, propertyFile);
+    public void setTimeout(Integer timeout) {
+        root.setIntegerValue(PROP_TIMEOUT, timeout);
     }
 
     public String getPropertiesFile() {
         return rootConfig.getStringValue(PROPERTIES_FILE);
     }
 
-    public void setExportFile(String exportFile) {
-        rootConfig.setStringValue(EXPORT_FILE, exportFile);
+    public void setPropertiesFile(String propertyFile) {
+        rootConfig.setStringValue(PROPERTIES_FILE, propertyFile);
     }
 
     public String getExportFile() {
         return rootConfig.getStringValue(EXPORT_FILE);
+    }
+
+    public void setExportFile(String exportFile) {
+        rootConfig.setStringValue(EXPORT_FILE, exportFile);
     }
 
     public void setIncludeEnvVars(Boolean enabled) {
@@ -176,20 +172,20 @@ public class ArtifactoryClientConfiguration {
         return rootConfig.getBooleanValue(INCLUDE_ENV_VARS, false);
     }
 
-    public void setEnvVarsIncludePatterns(String patterns) {
-        rootConfig.setStringValue(ENV_VARS_INCLUDE_PATTERNS, patterns);
-    }
-
     public String getEnvVarsIncludePatterns() {
         return rootConfig.getStringValue(ENV_VARS_INCLUDE_PATTERNS);
     }
 
-    public void setEnvVarsExcludePatterns(String patterns) {
-        rootConfig.setStringValue(ENV_VARS_EXCLUDE_PATTERNS, patterns);
+    public void setEnvVarsIncludePatterns(String patterns) {
+        rootConfig.setStringValue(ENV_VARS_INCLUDE_PATTERNS, patterns);
     }
 
     public String getEnvVarsExcludePatterns() {
         return rootConfig.getStringValue(ENV_VARS_EXCLUDE_PATTERNS);
+    }
+
+    public void setEnvVarsExcludePatterns(String patterns) {
+        rootConfig.setStringValue(ENV_VARS_EXCLUDE_PATTERNS, patterns);
     }
 
     public void setBuildListernerAdded(Boolean enabled) {
@@ -233,20 +229,20 @@ public class ArtifactoryClientConfiguration {
             setStringValue(CONTEXT_URL, contextUrl);
         }
 
-        public void setBuildRoot(String buildRoot) {
-            addMatrixParam(BUILD_ROOT, buildRoot);
+        public boolean isIvyRepositoryDefined() {
+            return root.getBooleanValue(IVY_REPO_DEFINED, false);
         }
 
         public void setIvyRepositoryDefined(boolean ivyRepositoryDefined) {
             root.setBooleanValue(IVY_REPO_DEFINED, ivyRepositoryDefined);
         }
 
-        public boolean isIvyRepositoryDefined() {
-            return root.getBooleanValue(IVY_REPO_DEFINED, false);
-        }
-
         public String getBuildRoot() {
             return getMatrixParams().get(BUILD_ROOT);
+        }
+
+        public void setBuildRoot(String buildRoot) {
+            addMatrixParam(BUILD_ROOT, buildRoot);
         }
 
         @Override
@@ -254,12 +250,12 @@ public class ArtifactoryClientConfiguration {
             return getPrefix() + MATRIX;
         }
 
-        public void setDownloadSnapshotRepoKey(String repoKey) {
-            setStringValue(DOWN_SNAPSHOT_REPO_KEY, repoKey);
-        }
-
         public String getDownloadSnapshotRepoKey() {
             return getStringValue(DOWN_SNAPSHOT_REPO_KEY);
+        }
+
+        public void setDownloadSnapshotRepoKey(String repoKey) {
+            setStringValue(DOWN_SNAPSHOT_REPO_KEY, repoKey);
         }
     }
 
@@ -282,20 +278,20 @@ public class ArtifactoryClientConfiguration {
             setStringValue(CONTEXT_URL, contextUrl);
         }
 
-        public void setSnapshotRepoKey(String repoKey) {
-            setStringValue(SNAPSHOT_REPO_KEY, repoKey);
-        }
-
         public String getSnapshotRepoKey() {
             return getStringValue(SNAPSHOT_REPO_KEY);
         }
 
-        public void setAggregateArtifacts(String path) {
-            setStringValue(AGGREGATE_ARTIFACTS, path);
+        public void setSnapshotRepoKey(String repoKey) {
+            setStringValue(SNAPSHOT_REPO_KEY, repoKey);
         }
 
         public String getAggregateArtifacts() {
             return getStringValue(AGGREGATE_ARTIFACTS);
+        }
+
+        public void setAggregateArtifacts(String path) {
+            setStringValue(AGGREGATE_ARTIFACTS, path);
         }
 
         public void setCopyAggregatedArtifacts(Boolean enabled) {
@@ -326,10 +322,6 @@ public class ArtifactoryClientConfiguration {
             setBooleanValue(PUBLISH_BUILD_INFO, enabled);
         }
 
-        public void setRecordAllDependencies(Boolean enabled) {
-            setBooleanValue(RECORD_ALL_DEPENDENCIES, enabled);
-        }
-
         public Boolean isPublishBuildInfo() {
             return getBooleanValue(PUBLISH_BUILD_INFO, true);
         }
@@ -346,28 +338,32 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(RECORD_ALL_DEPENDENCIES, false);
         }
 
-        public void setIncludePatterns(String patterns) {
-            setStringValue(INCLUDE_PATTERNS, patterns);
-        }
-
-        public void setFilterExcludedArtifactsFromBuild(boolean excludeArtifactsFromBuild) {
-            setBooleanValue(FILTER_EXCLUDED_ARTIFACTS_FROM_BUILD, excludeArtifactsFromBuild);
+        public void setRecordAllDependencies(Boolean enabled) {
+            setBooleanValue(RECORD_ALL_DEPENDENCIES, enabled);
         }
 
         public String getIncludePatterns() {
             return getStringValue(INCLUDE_PATTERNS);
         }
 
+        public void setIncludePatterns(String patterns) {
+            setStringValue(INCLUDE_PATTERNS, patterns);
+        }
+
         public boolean isFilterExcludedArtifactsFromBuild() {
             return getBooleanValue(FILTER_EXCLUDED_ARTIFACTS_FROM_BUILD, false);
         }
 
-        public void setExcludePatterns(String patterns) {
-            setStringValue(EXCLUDE_PATTERNS, patterns);
+        public void setFilterExcludedArtifactsFromBuild(boolean excludeArtifactsFromBuild) {
+            setBooleanValue(FILTER_EXCLUDED_ARTIFACTS_FROM_BUILD, excludeArtifactsFromBuild);
         }
 
         public String getExcludePatterns() {
             return getStringValue(EXCLUDE_PATTERNS);
+        }
+
+        public void setExcludePatterns(String patterns) {
+            setStringValue(EXCLUDE_PATTERNS, patterns);
         }
 
         public void setEvenUnstable(Boolean enabled) {
@@ -378,12 +374,12 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(EVEN_UNSTABLE, false);
         }
 
-        public void setBuildRoot(String buildRoot) {
-            addMatrixParam(BUILD_ROOT, buildRoot);
-        }
-
         public String getBuildRoot() {
             return getMatrixParams().get(BUILD_ROOT);
+        }
+
+        public void setBuildRoot(String buildRoot) {
+            addMatrixParam(BUILD_ROOT, buildRoot);
         }
 
         @Override
@@ -391,13 +387,13 @@ public class ArtifactoryClientConfiguration {
             return PROP_DEPLOY_PARAM_PROP_PREFIX;
         }
 
-        public void setArtifactSpecs(String artifactSpecs) {
-            setStringValue(ARTIFACT_SPECS, artifactSpecs);
-        }
-
         public ArtifactSpecs getArtifactSpecs() {
             String specs = getStringValue(ARTIFACT_SPECS);
             return new ArtifactSpecs(specs);
+        }
+
+        public void setArtifactSpecs(String artifactSpecs) {
+            setStringValue(ARTIFACT_SPECS, artifactSpecs);
         }
     }
 
@@ -408,20 +404,20 @@ public class ArtifactoryClientConfiguration {
 
         // TODO: Support proxy type SSL or not
 
-        public void setHost(String host) {
-            setStringValue(HOST, host);
-        }
-
         public String getHost() {
             return getStringValue(HOST);
         }
 
-        public void setPort(Integer port) {
-            setIntegerValue(PORT, port);
+        public void setHost(String host) {
+            setStringValue(HOST, host);
         }
 
         public Integer getPort() {
             return getIntegerValue(PORT);
+        }
+
+        public void setPort(Integer port) {
+            setIntegerValue(PORT, port);
         }
     }
 
@@ -430,20 +426,20 @@ public class ArtifactoryClientConfiguration {
             super(root, prefix);
         }
 
-        public void setUsername(String userName) {
-            setStringValue(USERNAME, userName);
-        }
-
         public String getUsername() {
             return getStringValue(USERNAME);
         }
 
-        public void setPassword(String password) {
-            setStringValue(PASSWORD, password);
+        public void setUsername(String userName) {
+            setStringValue(USERNAME, userName);
         }
 
         public String getPassword() {
             return getStringValue(PASSWORD);
+        }
+
+        public void setPassword(String password) {
+            setStringValue(PASSWORD, password);
         }
     }
 
@@ -455,16 +451,12 @@ public class ArtifactoryClientConfiguration {
             super(prefix);
         }
 
-        public void setName(String name) {
-            setStringValue(NAME, name);
-        }
-
         public String getName() {
             return getStringValue(NAME);
         }
 
-        public void setUrl(String url) {
-            setStringValue(URL, url);
+        public void setName(String name) {
+            setStringValue(NAME, name);
         }
 
         public String urlWithMatrixParams(String rootUrl) {
@@ -504,6 +496,10 @@ public class ArtifactoryClientConfiguration {
             return StringUtils.removeEnd(value, "/");
         }
 
+        public void setUrl(String url) {
+            setStringValue(URL, url);
+        }
+
         public String getUrl(String repo) {
             String value = getStringValue(URL);
             if (StringUtils.isBlank(value)) {
@@ -518,12 +514,12 @@ public class ArtifactoryClientConfiguration {
             return StringUtils.removeEnd(value, "/");
         }
 
-        public void setRepoKey(String repoKey) {
-            setStringValue(REPO_KEY, repoKey);
-        }
-
         public String getRepoKey() {
             return getStringValue(REPO_KEY);
+        }
+
+        public void setRepoKey(String repoKey) {
+            setStringValue(REPO_KEY, repoKey);
         }
 
         /**
@@ -548,16 +544,12 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(IVY, false);
         }
 
-        public void setM2Compatible(Boolean enabled) {
-            setBooleanValue(IVY_M2_COMPATIBLE, enabled);
-        }
-
         public boolean isM2Compatible() {
             return getBooleanValue(IVY_M2_COMPATIBLE, true);
         }
 
-        public void setIvyArtifactPattern(String artPattern) {
-            setStringValue(IVY_ART_PATTERN, artPattern);
+        public void setM2Compatible(Boolean enabled) {
+            setBooleanValue(IVY_M2_COMPATIBLE, enabled);
         }
 
         public String getIvyArtifactPattern() {
@@ -568,8 +560,8 @@ public class ArtifactoryClientConfiguration {
             return value.trim();
         }
 
-        public void setIvyPattern(String ivyPattern) {
-            setStringValue(IVY_IVY_PATTERN, ivyPattern);
+        public void setIvyArtifactPattern(String artPattern) {
+            setStringValue(IVY_ART_PATTERN, artPattern);
         }
 
         public String getIvyPattern() {
@@ -580,6 +572,9 @@ public class ArtifactoryClientConfiguration {
             return value.trim();
         }
 
+        public void setIvyPattern(String ivyPattern) {
+            setStringValue(IVY_IVY_PATTERN, ivyPattern);
+        }
 
         public abstract String getMatrixParamPrefix();
 
@@ -642,12 +637,12 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(LicenseControlFields.RUN_CHECKS, false);
         }
 
-        public void setViolationRecipients(String recipients) {
-            setStringValue(VIOLATION_RECIPIENTS, recipients);
-        }
-
         public String getViolationRecipients() {
             return getStringValue(VIOLATION_RECIPIENTS);
+        }
+
+        public void setViolationRecipients(String recipients) {
+            setStringValue(VIOLATION_RECIPIENTS, recipients);
         }
 
         public void setIncludePublishedArtifacts(Boolean enabled) {
@@ -658,12 +653,12 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(LicenseControlFields.INCLUDE_PUBLISHED_ARTIFACTS, false);
         }
 
-        public void setScopes(String scopes) {
-            setStringValue(LicenseControlFields.SCOPES, scopes);
-        }
-
         public String getScopes() {
             return getStringValue(LicenseControlFields.SCOPES);
+        }
+
+        public void setScopes(String scopes) {
+            setStringValue(LicenseControlFields.SCOPES, scopes);
         }
 
         public void setAutoDiscover(Boolean enabled) {
@@ -816,6 +811,7 @@ public class ArtifactoryClientConfiguration {
         public final BlackDuckPropertiesHandler blackDuckProperties = new BlackDuckPropertiesHandler();
 
         private final Predicate<String> buildVariablesPredicate;
+        private final Predicate<String> buildRunParametersPredicate;
 
         public BuildInfoHandler() {
             super(root, BUILD_INFO_PREFIX);
@@ -824,122 +820,127 @@ public class ArtifactoryClientConfiguration {
                     return input.startsWith(BUILD_INFO_PREFIX + ENVIRONMENT_PREFIX);
                 }
             };
-        }
-
-        public void setBuildName(String buildName) {
-            setStringValue(BUILD_NAME, buildName);
+            buildRunParametersPredicate = new Predicate<String>() {
+                public boolean apply(String input) {
+                    return input.startsWith(BUILD_INFO_PREFIX + RUN_PARAMETERS);
+                }
+            };
         }
 
         public String getBuildName() {
             return getStringValue(BUILD_NAME);
         }
 
-        public void setBuildNumber(String buildNumber) {
-            setStringValue(BUILD_NUMBER, buildNumber);
+        public void setBuildName(String buildName) {
+            setStringValue(BUILD_NAME, buildName);
         }
 
         public String getBuildNumber() {
             return getStringValue(BUILD_NUMBER);
         }
 
-        public void setBuildTimestamp(String timestamp) {
-            setStringValue(BUILD_TIMESTAMP, timestamp);
+        public void setBuildNumber(String buildNumber) {
+            setStringValue(BUILD_NUMBER, buildNumber);
         }
 
         public String getBuildTimestamp() {
             return getStringValue(BUILD_TIMESTAMP);
         }
 
-        public void setBuildStarted(String isoStarted) {
-            setStringValue(BUILD_STARTED, isoStarted);
+        public void setBuildTimestamp(String timestamp) {
+            setStringValue(BUILD_TIMESTAMP, timestamp);
         }
 
-        public void setBuildStarted(long timestamp) {
-            setBuildStarted(Build.formatBuildStarted(timestamp));
+        public void setBuildStarted(String isoStarted) {
+            setStringValue(BUILD_STARTED, isoStarted);
         }
 
         public String getBuildStarted() {
             return getStringValue(BUILD_STARTED);
         }
 
-        public void setPrincipal(String principal) {
-            setStringValue(PRINCIPAL, principal);
+        public void setBuildStarted(long timestamp) {
+            setBuildStarted(Build.formatBuildStarted(timestamp));
         }
 
         public String getPrincipal() {
             return getStringValue(PRINCIPAL);
         }
 
-        public void setBuildUrl(String buildUrl) {
-            setStringValue(BUILD_URL, buildUrl);
+        public void setPrincipal(String principal) {
+            setStringValue(PRINCIPAL, principal);
         }
 
         public String getBuildUrl() {
             return getStringValue(BUILD_URL);
         }
 
-        public void setVcsRevision(String vcsRevision) {
-            setStringValue(VCS_REVISION, vcsRevision);
+        public void setBuildUrl(String buildUrl) {
+            setStringValue(BUILD_URL, buildUrl);
         }
 
         public String getVcsRevision() {
             return getStringValue(VCS_REVISION);
         }
 
-        public void setVcsUrl(String vcsUrl) {
-            setStringValue(VCS_URL, vcsUrl);
+        public void setVcsRevision(String vcsRevision) {
+            setStringValue(VCS_REVISION, vcsRevision);
         }
 
         public String getVcsUrl() {
             return getStringValue(VCS_URL);
         }
 
-        public void setAgentName(String agentName) {
-            setStringValue(AGENT_NAME, agentName);
+        public void setVcsUrl(String vcsUrl) {
+            setStringValue(VCS_URL, vcsUrl);
         }
 
         public String getAgentName() {
             return getStringValue(AGENT_NAME);
         }
 
-        public void setAgentVersion(String agentVersion) {
-            setStringValue(AGENT_VERSION, agentVersion);
+        public void setAgentName(String agentName) {
+            setStringValue(AGENT_NAME, agentName);
         }
 
         public String getAgentVersion() {
             return getStringValue(AGENT_VERSION);
         }
 
-        public void setBuildAgentName(String buildAgentName) {
-            setStringValue(BUILD_AGENT_NAME, buildAgentName);
+        public void setAgentVersion(String agentVersion) {
+            setStringValue(AGENT_VERSION, agentVersion);
         }
 
         public String getBuildAgentName() {
             return getStringValue(BUILD_AGENT_NAME);
         }
 
-        public void setBuildAgentVersion(String buildAgentVersion) {
-            setStringValue(BUILD_AGENT_VERSION, buildAgentVersion);
+        public void setBuildAgentName(String buildAgentName) {
+            setStringValue(BUILD_AGENT_NAME, buildAgentName);
         }
 
         public String getBuildAgentVersion() {
             return getStringValue(BUILD_AGENT_VERSION);
         }
 
-        public void setParentBuildName(String parentBuildName) {
-            setStringValue(BUILD_PARENT_NAME, parentBuildName);
+        public void setBuildAgentVersion(String buildAgentVersion) {
+            setStringValue(BUILD_AGENT_VERSION, buildAgentVersion);
         }
 
         public String getParentBuildName() {
             return getStringValue(BUILD_PARENT_NAME);
         }
 
-        public void setParentBuildNumber(String parentBuildNumber) {
-            setStringValue(BUILD_PARENT_NUMBER, parentBuildNumber);
+        public void setParentBuildName(String parentBuildName) {
+            setStringValue(BUILD_PARENT_NAME, parentBuildName);
         }
 
         public String getParentBuildNumber() {
             return getStringValue(BUILD_PARENT_NUMBER);
+        }
+
+        public void setParentBuildNumber(String parentBuildNumber) {
+            setStringValue(BUILD_PARENT_NUMBER, parentBuildNumber);
         }
 
         public void setDeleteBuildArtifacts(Boolean deleteBuildArtifacts) {
@@ -954,32 +955,28 @@ public class ArtifactoryClientConfiguration {
             setBuildRetentionDays(daysToKeep);
         }
 
-        public void setBuildRetentionDays(Integer daysToKeep) {
-            setIntegerValue(BUILD_RETENTION_DAYS, daysToKeep);
-        }
-
         public Integer getBuildRetentionDays() {
             return getIntegerValue(BUILD_RETENTION_DAYS);
         }
 
-        public void setBuildRetentionCount(Integer buildsToKeep) {
-            setIntegerValue(BUILD_RETENTION_COUNT, buildsToKeep);
+        public void setBuildRetentionDays(Integer daysToKeep) {
+            setIntegerValue(BUILD_RETENTION_DAYS, daysToKeep);
         }
 
         public Integer getBuildRetentionCount() {
             return getIntegerValue(BUILD_RETENTION_COUNT);
         }
 
-        public void setBuildRetentionMinimumDate(String date) {
-            setStringValue(BUILD_RETENTION_MINIMUM_DATE, date);
+        public void setBuildRetentionCount(Integer buildsToKeep) {
+            setIntegerValue(BUILD_RETENTION_COUNT, buildsToKeep);
         }
 
         public String getBuildRetentionMinimumDate() {
             return getStringValue(BUILD_RETENTION_MINIMUM_DATE);
         }
 
-        public void setBuildNumbersNotToDelete(String buildNumbersNotToDelete) {
-            setStringValue(BUILD_NUMBERS_NOT_TO_DELETE, buildNumbersNotToDelete);
+        public void setBuildRetentionMinimumDate(String date) {
+            setStringValue(BUILD_RETENTION_MINIMUM_DATE, date);
         }
 
         public String[] getBuildNumbersNotToDelete() {
@@ -990,12 +987,16 @@ public class ArtifactoryClientConfiguration {
             return new String[0];
         }
 
-        public void setReleaseComment(String comment) {
-            setStringValue(RELEASE_COMMENT, comment);
+        public void setBuildNumbersNotToDelete(String buildNumbersNotToDelete) {
+            setStringValue(BUILD_NUMBERS_NOT_TO_DELETE, buildNumbersNotToDelete);
         }
 
         public String getReleaseComment() {
             return getStringValue(RELEASE_COMMENT);
+        }
+
+        public void setReleaseComment(String comment) {
+            setStringValue(RELEASE_COMMENT, comment);
         }
 
         public void setReleaseEnabled(Boolean enabled) {
@@ -1006,14 +1007,14 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(RELEASE_ENABLED, false);
         }
 
+        public String getBuildRoot() {
+            return getStringValue(BUILD_ROOT);
+        }
+
         public void setBuildRoot(String buildRoot) throws UnsupportedEncodingException {
             publisher.setBuildRoot(buildRoot);
             resolver.setBuildRoot(URLEncoder.encode(buildRoot, "UTF-8"));
             setStringValue(BUILD_ROOT, buildRoot);
-        }
-
-        public String getBuildRoot() {
-            return getStringValue(BUILD_ROOT);
         }
 
         public void addBuildVariables(Map<String, String> buildVariables, IncludeExcludePatterns patterns) {
@@ -1028,6 +1029,24 @@ public class ArtifactoryClientConfiguration {
 
         public void addEnvironmentProperty(String key, String value) {
             setStringValue(ENVIRONMENT_PREFIX + key, value);
+        }
+
+        /*
+        * Use for Multi-configuration/Matrix builds
+        */
+        public void addRunParameters(String key, String value) {
+            setStringValue(RUN_PARAMETERS + key, value);
+        }
+
+        public Map<String, String> getRunParameters() {
+            Map<String, String> tempMap = Maps.filterKeys(props, buildRunParametersPredicate);
+            Map<String, String> runParameters = Maps.newHashMap();
+            for (Map.Entry<String, String> param : tempMap.entrySet()) {
+                runParameters.put(param.getKey().replace(BUILD_INFO_PREFIX + RUN_PARAMETERS, StringUtils.EMPTY),
+                        param.getValue());
+            }
+
+            return runParameters;
         }
     }
 }

@@ -19,7 +19,7 @@ buildscript {
     repositories {
         jcenter()
         //mavenLocal()
-        dependencies { classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:2.2.5' }
+        dependencies { classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:3.0.1' }
     }
     configurations.classpath {
         resolutionStrategy {
@@ -46,6 +46,7 @@ allprojects {
     apply plugin: 'artifactory'
     apply plugin: 'eclipse'
     apply plugin: 'maven'
+    apply plugin: 'com.jfrog.artifactory-upload'
 
     group = 'org.jfrog.buildinfo'
 
@@ -169,7 +170,15 @@ configure(baseProjects()) {
         compile "com.google.guava:guava:10.0.1"
         compile "com.thoughtworks.xstream:xstream:1.3.1"
     }
-    test.useTestNG()
+
+    test {
+        test.useTestNG()
+        testLogging {
+            exceptionFormat "full"
+            events "started", "passed", "skipped", "failed", "standardOut", "standardError"
+            minGranularity 0
+        }
+    }
 
     artifactoryPublish {
         properties {
@@ -371,7 +380,9 @@ project('build-info-extractor-maven3') {
                 'org.sonatype.aether:aether-util:1.13.1',
                 'org.sonatype.aether:aether-impl:1.13.1',
                 'org.eclipse.aether:aether-api:0.9.0.M3',
-                'org.eclipse.aether:aether-util:0.9.0.M3'
+                'org.eclipse.aether:aether-util:0.9.0.M3',
+                'org.eclipse.aether:aether-impl:1.0.0.v20140518'
+        uberJar 'org.eclipse.aether:aether-impl:1.0.0.v20140518'
         provided    'org.codehaus.plexus:plexus-component-annotations:1.5.5'
         testCompile 'org.easymock:easymockclassextension:2.5.2'
     }
@@ -400,7 +411,7 @@ project('artifactory-maven-plugin') {
                     'org.codehaus.plexus:plexus-utils:3.0.13',
                     'org.apache.ant:ant:1.9.2'
 
-            compile ( project( ':build-info-extractor-maven3' )) { exclude group: 'org.jdom', module: 'jdom' }
+            uberJar ( project( ':build-info-extractor-maven3' )) { exclude group: 'org.jdom', module: 'jdom' }
             compile ( 'org.codehaus.gmaven:gmaven-mojo:1.5'    ) { exclude group: 'org.codehaus.groovy', module: 'groovy-all-minimal' }
 
             testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
@@ -496,7 +507,7 @@ idea {
 
 task wrapper(type: Wrapper) {
     description = 'Generates gradlew[.bat] scripts'
-    gradleVersion = '1.8'
+    gradleVersion = '2.0'
 }
 
 

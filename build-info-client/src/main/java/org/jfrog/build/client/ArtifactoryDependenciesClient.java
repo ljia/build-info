@@ -151,9 +151,7 @@ public class ArtifactoryDependenciesClient {
                 // http://wiki.fasterxml.com/JacksonDataBinding
                 return parser.readValueAs(valueType);
             } finally {
-                if (content != null) {
-                    IOUtils.closeQuietly(content);
-                }
+                IOUtils.closeQuietly(content);
             }
         } else {
             HttpEntity httpEntity = response.getEntity();
@@ -175,7 +173,7 @@ public class ArtifactoryDependenciesClient {
     private HttpResponse execute(String artifactUrl, boolean isHead) throws IOException {
         PreemptiveHttpClient client = httpClient.getHttpClient();
 
-        artifactUrl = httpClient.encodeUrl(artifactUrl);
+        artifactUrl = ArtifactoryHttpClient.encodeUrl(artifactUrl);
         HttpRequestBase httpRequest = isHead ? new HttpHead(artifactUrl) : new HttpGet(artifactUrl);
 
         //Explicitly force keep alive

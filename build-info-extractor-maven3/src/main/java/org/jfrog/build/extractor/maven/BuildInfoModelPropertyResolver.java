@@ -1,6 +1,6 @@
 package org.jfrog.build.extractor.maven;
 
-import com.google.common.io.Closeables;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.maven.Maven;
 import org.apache.maven.execution.ExecutionEvent;
@@ -17,10 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import static org.jfrog.build.api.BuildInfoFields.*;
 
@@ -121,6 +118,11 @@ public class BuildInfoModelPropertyResolver {
             builder.issues(issues);
         }
 
+        for (Map.Entry<String, String> runParam : clientConf.info.getRunParameters().entrySet()) {
+            MatrixParameter matrixParameter = new MatrixParameter(runParam.getKey(), runParam.getValue());
+            builder.addRunParameters(matrixParameter);
+        }
+
         return builder;
     }
 
@@ -190,7 +192,7 @@ public class BuildInfoModelPropertyResolver {
                     "Error while extracting Maven version properties from: org/apache/maven/messages/build.properties",
                     e);
         } finally {
-            Closeables.closeQuietly(inputStream);
+            IOUtils.closeQuietly(inputStream);
         }
 
         String version = mavenVersionProperties.getProperty("version");
