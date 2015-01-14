@@ -310,6 +310,65 @@ public class ArtifactoryBuildInfoClient {
     }
 
     /**
+     * Check if the artifact has duplicate in the destination repository.
+     *
+     * @param details
+     *            Details about the deployed artifact
+     * @throws IOException
+     *             On any connection error
+     */
+    public boolean checkDuplicateArtifact(DeployDetails details)
+            throws IOException {
+
+        StringBuilder searhArtifactPathBuilder = new StringBuilder(artifactoryUrl);
+        searhArtifactPathBuilder.append("/api/search/artifact?repos=")
+                .append(details.getTargetRepository()).append("&name=");
+
+        String artifactPath = details.getArtifactPath();
+        String artifactName = artifactPath.substring(artifactPath.lastIndexOf('/') + 1);
+        searhArtifactPathBuilder.append(artifactName);
+
+        String searchPath = searhArtifactPathBuilder.toString();
+        log.debug("Search URL: " + searchPath);
+        log.info("Check for duplicate artifact: " + artifactName);
+        searchPath = httpClient.encodeUrl(searchPath);
+
+
+        HttpGet httpget = new HttpGet(searchPath);
+        HttpResponse response = httpClient.getHttpClient().execute(httpget);
+        StatusLine statusLine = response.getStatusLine();
+        HttpEntity entity = response.getEntity();
+        if (statusLine.getStatusCode() != HttpStatus.SC_OK) {
+            if (entity != null) {
+                entity.consumeContent();
+            }
+            throwHttpIOException("Failed to obtain list of duplicates:", statusLine);
+        } else {
+            if (entity != null) {
+                InputStream content = entity.getContent();
+                JsonParser parser;
+                try {
+                    parser = httpClient.createJsonParser(content);
+                    JsonNode result = parser.readValueAsTree();
+                    log.debug("Repositories result = " + result);
+                    result = result.get("results");
+                    if (result != null && result.size() > 0) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } finally {
+                    if (content != null) {
+                        content.close();
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @return Artifactory version if working against a compatible version of Artifactory
      * @throws IOException If server not found or it doesn't answer to the version query or it is too old
      */

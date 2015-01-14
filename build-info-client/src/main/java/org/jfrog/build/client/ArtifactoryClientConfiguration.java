@@ -333,6 +333,14 @@ public class ArtifactoryClientConfiguration {
         public Boolean isPublishBuildInfo() {
             return getBooleanValue(PUBLISH_BUILD_INFO, true);
         }
+        
+        public void setCheckDuplicateArtifact(Boolean enabled) {
+            setBooleanValue(CHECK_DUPLICATE_ARTIFACT, enabled);
+        }
+        
+        public Boolean isCheckDuplicateArtifact() {
+            return getBooleanValue(CHECK_DUPLICATE_ARTIFACT, true);
+        }
 
         public boolean isRecordAllDependencies() {
             return getBooleanValue(RECORD_ALL_DEPENDENCIES, false);
