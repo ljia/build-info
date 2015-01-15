@@ -338,6 +338,14 @@ public class ArtifactoryClientConfiguration {
             return getBooleanValue(RECORD_ALL_DEPENDENCIES, false);
         }
 
+        public void setCheckDuplicateArtifact(Boolean enabled) {
+            setBooleanValue(CHECK_DUPLICATE_ARTIFACT, enabled);
+        }
+
+        public Boolean isCheckDuplicateArtifact() {
+            return getBooleanValue(CHECK_DUPLICATE_ARTIFACT, false);
+        }
+
         public void setIncludePatterns(String patterns) {
             setStringValue(INCLUDE_PATTERNS, patterns);
         }
