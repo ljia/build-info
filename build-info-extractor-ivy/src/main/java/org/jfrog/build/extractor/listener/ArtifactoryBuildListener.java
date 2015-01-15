@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-
 /**
  * A listener which listens to the {@link Ant} builds, and is invoking different events during the build of {@code Ant}
  * itself! This is not to be confused with {@code Ivy} {@link Trigger} which is called during Ivy related events
@@ -359,6 +358,32 @@ public class ArtifactoryBuildListener implements BuildListener {
 
     private void deployArtifacts(Project project, ArtifactoryBuildInfoClient client, Set<DeployDetails> deployDetails,
                                  IncludeExcludePatterns patterns) throws IOException {
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
+        boolean foundDuplicate = false;
+        
+        for (DeployDetails deployDetail : deployDetails) {
+        	String artifactPath = deployDetail.getArtifactPath();
+            if (PatternMatcher.pathConflicts(artifactPath, patterns)) {
+                project.log("[buildinfo:deploy] Skipping the duplicate check of '" + artifactPath +
+                        "' due to the defined include-exclude patterns.", Project.MSG_INFO);
+                continue;
+            }
+            if (client.checkDuplicateArtifact(deployDetail)) {
+                duplicateArtifacts.add(deployDetail);
+                foundDuplicate = true;
+            }
+        }
+        
+        if (foundDuplicate) {
+            StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
+            }
+            msg.append("[buildinfo:deploy] Skipping deployment of artifacts (if any) and build info.");
+            throw new RuntimeException(msg.toString());
+        }
+        
         for (DeployDetails deployDetail : deployDetails) {
             String artifactPath = deployDetail.getArtifactPath();
             if (PatternMatcher.pathConflicts(artifactPath, patterns)) {

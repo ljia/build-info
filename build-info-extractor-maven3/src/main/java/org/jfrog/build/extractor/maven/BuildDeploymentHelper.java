@@ -18,6 +18,7 @@ package org.jfrog.build.extractor.maven;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
+
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
@@ -33,6 +34,7 @@ import org.jfrog.build.extractor.BuildInfoExtractorUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -257,7 +259,43 @@ public class BuildDeploymentHelper {
     private void deployArtifacts(ArtifactoryClientConfiguration.PublisherHandler publishConf,
             Set<DeployDetails> deployableArtifacts,
             ArtifactoryBuildInfoClient client) {
+        logger.info("Artifactory Build Info Recorder: Deploying artifacts to " + publishConf.getUrl());
+        
         IncludeExcludePatterns includeExcludePatterns = getArtifactDeploymentPatterns(publishConf);
+        
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
+        boolean foundDuplicate = false;
+        
+        for (DeployDetails artifact : deployableArtifacts) {
+            String artifactPath = artifact.getArtifactPath();
+            if (PatternMatcher.pathConflicts(artifactPath, includeExcludePatterns)) {
+                logger.info("Artifactory Build Info Recorder: Skipping the duplicate check of '" +
+                        artifactPath + "' due to the defined include-exclude patterns.");
+                continue;
+            }
+            try {
+	            if (client.checkDuplicateArtifact(artifact)) {
+	                duplicateArtifacts.add(artifact);
+	                foundDuplicate = true;
+	            }
+            } catch (IOException e) {
+                throw new RuntimeException("Error occurred while checking duplicate in Artifactory: " +
+                        artifact.getFile() +
+                        ".\n Skipping deployment of remaining artifacts (if any) and build info.", e);
+            }
+        }
+        
+        if (foundDuplicate) {
+            StringBuilder msg = new StringBuilder("Artifactory Build Info Recorder: " + ""
+                    + "The following artifacts has duplicates in the target repo:\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
+            }
+            msg.append("Artifactory Build Info Recorder: Skipping deployment of artifacts (if any) and build info.");
+            throw new RuntimeException(msg.toString());
+        }
+
         for (DeployDetails artifact : deployableArtifacts) {
             String artifactPath = artifact.getArtifactPath();
             if (PatternMatcher.pathConflicts(artifactPath, includeExcludePatterns)) {

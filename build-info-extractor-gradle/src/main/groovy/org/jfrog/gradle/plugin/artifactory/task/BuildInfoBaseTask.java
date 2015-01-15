@@ -56,6 +56,7 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
     public static final String BUILD_INFO_TASK_NAME = "artifactoryPublish";
     public static final String PUBLISH_ARTIFACTS = "publishArtifacts";
     public static final String PUBLISH_BUILD_INFO = "publishBuildInfo";
+    public static final String CHECK_DUPLICATE_ARTIFACT = "checkDuplicateArtifact";
     public static final String ARCHIVES_BASE_NAME = "archivesBaseName";
 
     @Input
@@ -93,6 +94,17 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
 
     public void setPublishArtifacts(Object publishArtifacts) {
         setFlag(PUBLISH_ARTIFACTS, toBoolean(publishArtifacts));
+    }
+
+    @Input
+    @Optional
+    @Nullable
+    public Boolean getCheckDuplicateArtifact() {
+        return getFlag(CHECK_DUPLICATE_ARTIFACT);
+    }
+
+    public void setCheckDuplicateArtifact(Object checkDuplicateArtifact) {
+        setFlag(CHECK_DUPLICATE_ARTIFACT, toBoolean(checkDuplicateArtifact));
     }
 
     protected Boolean toBoolean(Object publishIvy) {
@@ -400,6 +412,36 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
     private void deployArtifacts(Set<GradleDeployDetails> allDeployDetails, ArtifactoryBuildInfoClient client,
             IncludeExcludePatterns patterns)
             throws IOException {
+
+        /*
+         * Before deploying artifacts, run a check to make sure there is no duplicate.
+         * If there are duplicates, skip the deployment process and error out.
+         */
+        List<DeployDetails> duplicateArtifacts = new ArrayList<DeployDetails>();
+        boolean foundDuplicate = false;
+        for (GradleDeployDetails detail : allDeployDetails) {
+            DeployDetails deployDetails = detail.getDeployDetails();
+            String artifactPath = deployDetails.getArtifactPath();
+            if (PatternMatcher.pathConflicts(artifactPath, patterns)) {
+                log.log(LogLevel.LIFECYCLE, "Skipping the duplicate check of '" + artifactPath +
+                        "' due to the defined include-exclude patterns.");
+                continue;
+            }
+            if (client.checkDuplicateArtifact(deployDetails)) {
+            	duplicateArtifacts.add(deployDetails);
+                foundDuplicate = true;
+            }
+        }
+        if (foundDuplicate) {
+            StringBuilder msg = new StringBuilder("The following artifacts has duplicates in the target repo:\n");
+            for (DeployDetails duplicateArtifact : duplicateArtifacts) {
+                msg.append(duplicateArtifact.getFile().getName()).append(", repo: ")
+                    .append(duplicateArtifact.getTargetRepository()).append("\n");
+            }
+            msg.append("Skipping deployment of artifacts (if any) and build info.");
+            throw new RuntimeException(msg.toString());
+        }
+        
         for (GradleDeployDetails detail : allDeployDetails) {
             DeployDetails deployDetails = detail.getDeployDetails();
             String artifactPath = deployDetails.getArtifactPath();
@@ -408,7 +450,13 @@ public abstract class BuildInfoBaseTask extends DefaultTask {
                         "' due to the defined include-exclude patterns.");
                 continue;
             }
-            client.deployArtifact(deployDetails);
+            
+            try {
+            	client.deployArtifact(deployDetails);
+            } catch (IOException e) {
+                throw new RuntimeException("Error deploying artifact: " + deployDetails.getFile() +
+                        ".\n Skipping deployment of remaining artifacts (if any) and build info.", e);
+            }
         }
     }
 
