@@ -109,7 +109,7 @@ public class BuildDeploymentHelper {
 
             try {
                 if ( isDeployArtifacts ) {
-                    deployArtifacts(clientConf.publisher, deployableArtifacts, client);
+                    deployArtifacts(clientConf.publisher, deployableArtifacts, client, clientConf.publisher.isCheckDuplicateArtifact());
                 }
 
                 if ( isSendBuildInfo ) {
@@ -260,13 +260,9 @@ public class BuildDeploymentHelper {
 
     private void deployArtifacts(ArtifactoryClientConfiguration.PublisherHandler publishConf,
             Set<DeployDetails> deployableArtifacts,
-<<<<<<< HEAD
-            ArtifactoryBuildInfoClient client) {
-=======
             ArtifactoryBuildInfoClient client, Boolean checkDuplicateArtifact) {
         logger.info("Artifactory Build Info Recorder: Deploying artifacts to " + publishConf.getUrl());
         
->>>>>>> 2.1.0-nodup
         IncludeExcludePatterns includeExcludePatterns = getArtifactDeploymentPatterns(publishConf);
 
         if (checkDuplicateArtifact) {
