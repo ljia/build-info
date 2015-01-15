@@ -109,7 +109,7 @@ public class BuildDeploymentHelper {
 
             try {
                 if ( isDeployArtifacts ) {
-                    deployArtifacts(clientConf.publisher, deployableArtifacts, client);
+                    deployArtifacts(clientConf.publisher, deployableArtifacts, client, clientConf.publisher.isPublishArtifacts());
                 }
 
                 if ( isSendBuildInfo ) {
